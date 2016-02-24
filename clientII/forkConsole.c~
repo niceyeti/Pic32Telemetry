@@ -1,0 +1,45 @@
+//#include "common.c"
+#include "socket.h"
+#include "unistd.h"
+
+
+
+
+/*
+  Startup prog for forking processes related to comms i/o with cerebot.
+  For now, just forks a terminal from the current proc, gets its pid,
+  and pipes telemetry data to it over a unix socket (just for fun).
+
+  KISS: Just implements a simple fork-exec pattern.
+*/
+int main(void)
+{
+  int pid;
+
+  pid = fork();
+  if(pid){
+
+  }
+  else{
+    exec("gnome-terminal");
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return 0;
+}
+
+
+

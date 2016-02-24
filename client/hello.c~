@@ -1,0 +1,12 @@
+#include "stdio.h"
+
+int main(void)
+{
+  char buf[256];
+
+  printf("HELLO WORLD\n");
+
+  read(0,buf,256);
+
+  return 0;
+}

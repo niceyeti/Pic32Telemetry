@@ -1,0 +1,23 @@
+#include <signal.h>
+#include <iostream>
+
+/*
+  Emulates a simple state machine for telling ui to update itself.
+*/
+int main(void)
+{
+
+
+
+
+
+
+
+
+}
+
+
+
+
+
+

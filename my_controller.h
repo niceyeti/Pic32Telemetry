@@ -1,0 +1,69 @@
+#ifndef MY_CONTROLLER_H
+#define MY_CONTROLLER_H
+
+
+/*
+  This is our "plant".  It takes in the current state of all 
+  inputs, interprets it, and upates current state to reach system goal state.
+
+  A lot of state variables may become globals instead of parameters (for access via interrupts). maybe put them in a single file.
+
+  Could introduce a new data type, struct stateData, which either contains an IMU struct or just a pointer to one.
+
+  See Desktop/Microprocs/OurDocs/Projects/Output Compare file for motor control settings, etc. 
+my_controller.c:12:4: error: 'STATE' has no member named 'goalgyroRoll'
+*/
+
+#include "my_imu.h"
+#include "my_motors.h"
+//#include "FreeRTOS/include/FreeRTOS.h"
+//#include "FreeRTOS/include/task.h"
+
+/* 
+  This must be determined by experience. it sets the window within which h-bridge will not switch
+  It may need to be more of a weight value of accX and gyroX, such that the motors may switch if
+  we are within the threshold, but gyroX detects some "fall" condition to override.
+
+  Purpose is just to reduce switching when at or very near the goal state of static balance.
+*/
+#define ACCX_SOFT_THRESHOLD 13
+#define ACCX_MONEY_THRESHOLD 5  //maybe dont update when in this region and d_accX is low
+#define ACCX_OFFSET  55 //x calibration value: this needs to be calibrated at run time
+#define FALL_THRESHOLD 100
+
+/*
+  These also must be determined experimentally.  Y2 detects acceleration in g's, which may not be linear,
+  so scaling dx may be slightly complicated. Likely could discretize to only a few vals or even bool-ize dx.
+  Either way, Y1 and Y2 must not overpower one another.
+*/
+#define PROPORTIONAL_GAIN          2
+#define DERIVATIVE_GAIN            0
+#define INTEGRAL_GAIN              8
+#define OC_LINEAR_CONSTANT        95
+
+#define MOTOR_FORWARD 0x8000
+#define MOTOR_REVERSE 0x0000
+
+typedef struct state{
+  short int motorDir;  //a 1 (FORWARD) or a zero (REVERSE): assume both wheels turn in same dir for now
+  short int nextDC;
+  short int lastDC;
+  short int rightDC;
+  short int leftDC;
+  short int goalAccX;  //init this at startup, holding the robot upright. all vals will be relative to it.
+  short int goalRoll; //should always be zero, unless accelerating forward
+  unsigned char cur;
+  unsigned char last;
+  IMU sensors[3];
+}STATE;
+
+void actions(STATE *s);
+void init(STATE *s);
+short int doPID(STATE* st);
+void updateState(STATE* st);
+short int shortAbs(short int value);
+void staticBalance(STATE* st);
+void updateMotorDir(STATE* st, short int cal_X);
+
+#endif
+

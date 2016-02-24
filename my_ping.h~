@@ -1,0 +1,3 @@
+#include "my_mcu.h"
+
+unsigned int sr04_ping(void);

@@ -1,0 +1,6 @@
+echo compiling view...
+g++ View.cpp -o view --std=c++11;
+echo complete.
+echo compiling cerebot client...
+g++ -O3 CerebotClient.cpp Comm.cpp ../../encoding/encoding.c ViewController.cpp VectorRing.cpp -o cerebot --std=c++11 -lpthread;
+echo complete.

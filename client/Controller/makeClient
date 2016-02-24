@@ -1,0 +1,1 @@
+all: ; g++ UiClient.cpp -o uiClient --std=c++0x;

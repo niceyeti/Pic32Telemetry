@@ -1,0 +1,6 @@
+build/
+FreeRTOS/
+debug/
+dist/
+nbproject/
+Source/

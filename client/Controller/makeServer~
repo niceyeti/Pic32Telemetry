@@ -1,0 +1,1 @@
+server:  g++ UiServer.cpp -o uiServer --std=c++0x

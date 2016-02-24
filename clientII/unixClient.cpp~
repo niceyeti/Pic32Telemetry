@@ -1,0 +1,33 @@
+#include <socket.h>
+#include <sys/types.h>
+#include <string.h>
+
+#define SOCK_PATH "/home/jesse/MPLABXProjects/Rebuild_NoRTOS.X/client/sockfile";
+
+
+/*
+  Unix domain datagram client and server implementation.
+  Direct from Stevens' Network Programming, Vol1, pg 419.
+*/
+
+int main(int argc, char* argv[])
+{
+  int sockfd;
+  struct sockaddr_un servaddr, cliaddr;
+
+  sockfd = socket(AF_LOCAL,SOCK_DGRAM, 0);
+
+  unlink(SOCK_PATH);
+  memset((void*)&servaddr,0,sizeof(servaddr));
+  servaddr.sun_family = AF_LOCAL;
+  strncpy(servaddr.sun_path,SOCK_PATH,64);
+
+  bind(sockfd, (SA*)&servaddr, sizeof(servaddr));
+
+  dg_echo(sockfd,(SA*)&cliaddr,sizeof(cliaddr));
+
+  return 0;
+}
+
+
+

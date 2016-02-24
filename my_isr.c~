@@ -1,0 +1,252 @@
+#include "my_isr.h"
+
+//Vector numbers for handlers are from p32mx460f512l.h file
+/* mplab / non-rtos version for timer 2
+void __ISR(_TIMER_2_VECTOR, IPL6AUTO) T2Handler(void) // SW1
+{
+
+  Reading from buffers is how we clear them. As such, this loop is necessary
+  to clear the IC buffer.  Otherwise, the buffer will always be non-empty, so
+  the interrupt will continually fire!
+  while( mIC2CaptureReady() )
+  {
+    myData = mIC2ReadCapture();
+  }
+
+  PORTToggleBits(IOPORT_B, BIT_1);
+  INTClearFlag(INT_IC2);
+  //mIC2ClearIntFlag();
+}
+*/
+int counter = 0;  //32 bit counter var
+int motorBias = 0;
+
+
+//interrupt every 0.10 millseconds
+void __ISR(_TIMER_3_VECTOR, IPL6AUTO) vT3InterruptHandler(void)
+{
+  counter++;
+  counter %= 10;
+
+  LATBINV = 0x0C00;  //flash ten times per second.
+  if(counter == 9){
+    LATBSET = 0x3000;  //flash ten times per second.
+    LATBINV = 0x0C00;  //flash ten times per second.
+  }
+
+  INTClearFlag( INT_T3 );
+}
+
+void __ISR(_UART_1_VECTOR, IPL6AUTO) UART1Handler(void) // SW1
+{
+
+   if (INTGetFlag(INT_SOURCE_UART_RX(UART1)))
+    {
+      // Echo what we just received.
+    //UARTSendDataByte(UART1, UARTGetDataByte(UART1));
+    //UARTSendDataByte(UART1, '<-dR ');
+
+      // Clear the RX interrupt Flag
+    INTClearFlag(INT_SOURCE_UART_RX(UART1));
+
+      // Toggle LED to indicate UART activity
+      //mPORTBToggleBits(BIT_0 | BIT_1 |BIT_2 | BIT_3);
+    PORTToggleBits(IOPORT_B, BIT_0);
+    }
+  // We don't care about TX interrupt
+  else if ( INTGetFlag(INT_SOURCE_UART_TX(UART1)) )      //if-else logic should also define/include UI_ERR interrupt handling
+    {
+    INTClearFlag(INT_SOURCE_UART_TX(UART1));
+    PORTSetBits(IOPORT_B, BIT_3);
+    }
+  else
+  {
+    INTClearFlag(INT_SOURCE_UART_TX(UART1));    //need case to clear all U1 interrupts
+    INTClearFlag(INT_SOURCE_UART_RX(UART1));
+    //PORTSetBits(IOPORT_B, BIT_1 | BIT_3 );
+  }
+}
+
+//Vector numbers for handlers are from p32mx460f512l.h file
+/*
+  Corresponds with RD09 port, right motor (RD1 / OC2)
+
+    Right motor HB5:   (PIC)  (Cerebot)
+              OC2  ->  RD1
+              Dir  ->  RD7  (direction)
+              IC2 ->  RD9
+              Vdd  ->  Vdd
+              Gnd  ->  Gnd
+*/
+void __ISR(_INPUT_CAPTURE_2_VECTOR, IPL5AUTO) IC2Handler(void) // SW1
+{
+  int myData = 0;
+
+  /*Reading from buffers is how we clear them. As such, this loop is necessary
+  to clear the IC buffer.  Otherwise, the buffer will always be non-empty, so
+  the interrupt will continually fire! */
+  while( mIC2CaptureReady() )
+  {
+    myData = mIC2ReadCapture();
+  }
+
+  motorBias++;             //right motor increments bias
+
+  //for continuous bias calculation, must use to track rotational delta:
+  //lastLeftIC = curLeftIC;
+  //curLeftIC = TMR2;
+
+  //correct motor bias
+  //balanceMotors(lastLeftIC,curLeftIC); //continuous state version (likely preferable)  
+  balanceMotors();  //discrete state version
+
+  LATBINV = 0x0400; //toggle rightmost led, RB13
+  //PORTToggleBits(IOPORT_B, BIT_1);
+  INTClearFlag(INT_IC2);
+  //mIC2ClearIntFlag();
+}
+
+/* 
+  Vector numbers for handlers are from p32mx460f512l.h file
+
+    Left motor HB5:   (PIC)  (Cerebot)
+              OC3  ->  RD2  (output waveform toggles the H-bridge enable)
+              Dir  ->  RD6  (direction)
+              IC3 ->   RD10
+              Vdd  ->  Vdd
+              Gnd  ->  Gnd
+*/
+void __ISR(_INPUT_CAPTURE_3_VECTOR, IPL5AUTO) IC3Handler(void) // SW1
+{
+  int myData = 0;
+
+  /*Reading from buffers is how we clear them. As such, this loop is necessary
+  to clear the IC buffer.  Otherwise, the buffer will always be non-empty, so
+  the interrupt will continually fire! */
+  while( mIC3CaptureReady() )
+  {
+    myData = mIC3ReadCapture();
+  }
+
+  motorBias--;             //left motor increments bias
+
+  //for continuous bias calculation, must use track time deltas:
+  //lastLeftIC = curLeftIC;
+  //curLeftIC = TMR2;       //read the motor timer
+
+  //correct motor bias
+  //balanceMotors(lastLeftIC,curLeftIC); //continuous state version (likely preferable)  
+  balanceMotors();  //discrete state version 
+
+  LATBINV = 0x2000; //toggle leftmost led, RB13
+  //PORTToggleBits(IOPORT_B, BIT_1);
+  INTClearFlag(INT_IC3);
+  //mIC3ClearIntFlag();
+}
+
+/*
+  this suffers a frame problem: if the resolution is fast, its possible this could fire multiple times
+  for the same bias frame.  Scenario is like this: motorbias goes extreme, and before the motors can
+  really respond, this sucker fires many more times, and overcompensates. Solution may be just
+  some form of smoothing.
+
+*/
+void balanceMotors()
+{
+  int scalar = (int)(MOTOR_CORRECTION_GAIN * motorBias);
+
+  if(motorBias > 1){  // right motor overpowering, so slow it and speed up left
+    OC2RS = ReadDCOC2PWM() - scalar;
+    OC3RS = scalar + ReadDCOC3PWM();
+  }
+  if(motorBias < 1){
+    OC3RS = ReadDCOC3PWM() - scalar;
+    OC2RS = scalar + ReadDCOC2PWM();
+  }
+}
+
+
+/*
+//MPLab example.  Single interrupt for UART, which internally maps Tx/Rx/Err interrupt source
+void __ISR(_UART1_VECTOR, IPL2AUTO) IntUART1Handler(void)
+{
+  // Is this an RX interrupt?
+  if (INTGetFlag(INT_SOURCE_UART_RX(UART1)))
+    {
+      // Echo what we just received.
+    UARTSendDataByte(UART1, UARTGetDataByte(UART1));
+    UARTSendDataByte(UART1, 'R');
+
+      // Clear the RX interrupt Flag
+    INTClearFlag(INT_SOURCE_UART_RX(UART1));
+
+      // Toggle LED to indicate UART activity
+      //mPORTBToggleBits(BIT_0 | BIT_1 |BIT_2 | BIT_3);
+    PORTToggleBits(IOPORT_B, BIT_0);
+    }
+  // We don't care about TX interrupt
+  else if ( INTGetFlag(INT_SOURCE_UART_TX(UART1)) )      //if-else logic should also define/include UI_ERR interrupt handling
+    {
+    INTClearFlag(INT_SOURCE_UART_TX(UART1));
+    PORTWrite(IOPORT_B, 0x0802);
+    }
+  else
+  {
+    INTClearFlag(INT_SOURCE_UART_TX(UART1));    //need case to clear all U1 interrupts
+    INTClearFlag(INT_SOURCE_UART_RX(UART1));
+    PORTWrite(IOPORT_B, 0x280A);
+  }
+}
+*/
+
+/*
+void __attribute__((interrupt,no_auto_psv)) _U1RXInterrupt(void)
+{
+  IFS0bits.U1RXIF = 0;       // clear TX interrupt flag
+
+  unsigned int LED_state = 0;
+
+  LED_state = PORTRead(IOPORT_B);
+
+  LED_state &= 0x3C00;
+
+  if(LED_state == 0)
+    PORTWrite(IOPORT_B, 0x3C00);
+}
+*/
+
+/*
+ void __attribute__((interrupt, no_auto_psv)) __U1RXInterrupt(void){
+ IFS0bits.U1RXIF=0;                                                     //      Clear flag
+ mLED_5_Toggle();
+ }
+*/
+/*
+void __ISR(_EXTERNAL_1_VECTOR, ipl7) INT1Handler(void) // U1Rx interrupt
+{
+
+  if (LED_value == 1) // // Is LED1 on?
+  {
+    flag = 1;
+    player1Score++;
+  }
+
+  mINT1ClearIntFlag ();
+}
+*/
+
+/*
+    Left motor HB5:   (PIC)  (Cerebot)
+              OC3  ->  RD2  (output waveform toggles the H-bridge enable)
+              Dir  ->  RD6  (direction)
+              RD10->   IC3
+              Vdd  ->  Vdd
+              Gnd  ->  Gnd
+
+    Right motor HB5:   (PIC)  (Cerebot)
+              OC2  ->  RD1
+              Dir  ->  RD7  (direction)
+              RD9 ->   IC2
+              Vdd  ->  Vdd
+              Gnd  ->  Gnd
+*/

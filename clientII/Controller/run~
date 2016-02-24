@@ -1,0 +1,2 @@
+sudo rfcomm bind 0 00:06:66:43:96:73
+./cerebot

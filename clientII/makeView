@@ -1,0 +1,1 @@
+g++ View.cpp -o view --std=c++0x

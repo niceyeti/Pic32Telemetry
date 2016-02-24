@@ -1,0 +1,7 @@
+//#include "stdio.h"
+#include "string.h"
+
+#define DBG 1
+#define ERR 64 //some value not in the base64 char-value set of numbers 0-63
+#define IS_LITTLE_ENDIAN 1
+

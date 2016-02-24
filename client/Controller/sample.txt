@@ -1,0 +1,397 @@
+read 32 bytes from cerebot: /6n+AAH//6j/+/8hAA7/HP5zAIcAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G ffffffa8 fffffffb ffffff21 e
+M ffffff1c fffffe73 87
+B 0pa 0c
+read 27 bytes from cerebot: /6n+AAH/ABMAGf/kAA7/HP5zAIc
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 13 19 ffffffe4 e
+M ffffff1c fffffe73 87
+B 4004pa 4160c
+read 5 bytes from cerebot: AAAAA
+vec accX: 0
+A 0 4 1040
+G 410 4004 1040 410
+M 4004 1040 410
+B 4004pa 4160c
+read 32 bytes from cerebot: /6j+AAH/AF0AUgA7AA7/HP5yAIcAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 5d 52 3b e
+M ffffff1c fffffe72 87
+B 0pa 0c
+read 30 bytes from cerebot: /6n+AAH//+AADwAbAA7/HP5yAIcAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G ffffffe0 f 1b e
+M ffffff1c fffffe72 87
+B 0pa 4160c
+read 2 bytes from cerebot: AA
+vec accX: 16
+A 10 4004 1040
+G 410 4004 1040 410
+M 4004 1040 410
+B 4004pa 4160c
+read 32 bytes from cerebot: /6j+AAH//6f/6wAhAA7/HP5yAIcAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffffa7 ffffffeb 21 e
+M ffffff1c fffffe72 87
+B 0pa 0c
+read 29 bytes from cerebot: /6r+AAH/AFMABQBAAA7/HP5zAIkAA
+vec accX: -86
+A ffffffaa fffffe00 1ff
+G 53 5 40 e
+M ffffff1c fffffe73 89
+B 4pa 4160c
+read 3 bytes from cerebot: AAA
+vec accX: 0
+A 0 4004 1040
+G 410 4004 1040 410
+M 4004 1040 410
+B 4004pa 4160c
+read 32 bytes from cerebot: /6f+AAH//87/1AA+AA7/HP5zAIkAAAAA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G ffffffce ffffffd4 3e e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6v+AAH//0n+7//dAA7/HP5zAIkAAAAA
+vec accX: -85
+A ffffffab fffffe00 1ff
+G ffffff49 fffffeef ffffffdd e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6r+AAH//9r/3//yAA7/HP5zAIkAAAAA
+vec accX: -86
+A ffffffaa fffffe00 1ff
+G ffffffda ffffffdf fffffff2 e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/AJcArwAcAA7/HP5zAIkAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 97 af 1c e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH//9r/zgANAA7/HP5zAIkAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffffda ffffffce d e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6f+AAH/AAn/3//qAA7/HP5zAIkAAAAA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G 9 ffffffdf ffffffea e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AF4AKv++AA7/HP5zAIkAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 5e 2a ffffffbe e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/AAX/bf/RAA7/HP5zAIkAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 5 ffffff6d ffffffd1 e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6r+AAH/ADL/4P/IAA7/HP5zAIkAAAAA
+vec accX: -86
+A ffffffaa fffffe00 1ff
+G 32 ffffffe0 ffffffc8 e
+M ffffff1c fffffe73 89
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AI4AiP/8AA7/G/5zAIoAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 8e 88 fffffffc e
+M ffffff1b fffffe73 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AI0ATP/dAA7/G/5zAIoAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 8d 4c ffffffdd e
+M ffffff1b fffffe73 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6f+AAH/ACcAMv/4AA7/G/5zAIoAAAAA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G 27 32 fffffff8 e
+M ffffff1b fffffe73 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AFcAPv/aAA7/HP5yAIoAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 57 3e ffffffda e
+M ffffff1c fffffe72 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/ADUABwASAA7/HP5yAIoAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 35 7 12 e
+M ffffff1c fffffe72 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/ACIAAv/5AA7/HP5yAIoAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 22 2 fffffff9 e
+M ffffff1c fffffe72 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6r+AAH/AAQAKv8GAA7/HP5yAIoAAAAA
+vec accX: -86
+A ffffffaa fffffe00 1ff
+G 4 2a ffffff06 e
+M ffffff1c fffffe72 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH//+8AYAAIAA7/HP5zAIoAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G ffffffef 60 8 e
+M ffffff1c fffffe73 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/ACgANv//AA7/HP5zAIoAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 28 36 ffffffff e
+M ffffff1c fffffe73 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH///EAHQBSAA7/HP5zAIoAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G fffffff1 1d 52 e
+M ffffff1c fffffe73 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH///b/9QA5AA7/Hf5zAIwAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G fffffff6 fffffff5 39 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH//+f/+wA1AA7/Hf5zAIwAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G ffffffe7 fffffffb 35 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AAQAQwAvAA7/Hf5zAIwAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 4 43 2f e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH//87/3AAMAA7/Hf5zAIwAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffffce ffffffdc c e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH//+X/+P/PAA7/Hf5zAIwAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffffe5 fffffff8 ffffffcf e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/AD4AHP/4AA7/Hf5zAIwAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 3e 1c fffffff8 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH//53/3wAHAA7/Hf5zAIwAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G ffffff9d ffffffdf 7 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH//8f/0//LAA7/Hf5zAIwAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffffc7 ffffffd3 ffffffcb e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/AAsAA/+5AA7/Hf5zAIwAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G b 3 ffffffb9 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6f+AAH/AHQAE//pAA7/Hf5zAIwAAAAA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G 74 13 ffffffe9 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 28 bytes from cerebot: /6f+AAH/AE8AJAAXAA7/Hf5zAIwA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G 4f 24 17 e
+M ffffff1d fffffe73 8c
+B 4pa 4160c
+read 4 bytes from cerebot: AAAA
+vec accX: 0
+A 0 4 1040
+G 410 4004 1040 410
+M 4004 1040 410
+B 4004pa 4160c
+read 32 bytes from cerebot: /6n+AAH/ABj/7v/QAA7/Hf5zAIwAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 18 ffffffee ffffffd0 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6f+AAH/AEP/4f/EAA7/Hf5zAIwAAAAA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G 43 ffffffe1 ffffffc4 e
+M ffffff1d fffffe73 8c
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/ADsAH//xAA7/Hf50AIoAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 3b 1f fffffff1 e
+M ffffff1d fffffe74 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/ACYAHP/dAA7/Hf50AIoAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 26 1c ffffffdd e
+M ffffff1d fffffe74 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/ACX/8AAKAA7/Hf50AIoAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 25 fffffff0 a e
+M ffffff1d fffffe74 8a
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/AFkATP/1AA7/Hf50AIsAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 59 4c fffffff5 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AAMADf/0AA7/Hf50AIsAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 3 d fffffff4 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AAMAD//2AA7/Hf50AIsAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 3 f fffffff6 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AEkAVQAwAA7/Hf50AIsAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 49 55 30 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/ACYAPABFAA7/Hf50AIsAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 26 3c 45 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH///gABgAEAA7/Hf50AIsAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G fffffff8 6 4 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH//9UAAAAEAA7/Hf50AIsAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffffd5 0 4 e
+M ffffff1d fffffe74 8b
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH///sAEgAxAA7/Hf50AIgAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G fffffffb 12 31 e
+M ffffff1d fffffe74 88
+B 0pa 0c
+read 32 bytes from cerebot: /6r+AAH//9sAHAAKAA7/Hf50AIgAAAAA
+vec accX: -86
+A ffffffaa fffffe00 1ff
+G ffffffdb 1c a e
+M ffffff1d fffffe74 88
+B 0pa 0c
+read 32 bytes from cerebot: /6f+AAH//9X/0QAuAA7/Hf50AIgAAAAA
+vec accX: -89
+A ffffffa7 fffffe00 1ff
+G ffffffd5 ffffffd1 2e e
+M ffffff1d fffffe74 88
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/AC4AMABHAA7/Hf5yAIkAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 2e 30 47 e
+M ffffff1d fffffe72 89
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH//+L/9AAQAA7/Hf5yAIkAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G ffffffe2 fffffff4 10 e
+M ffffff1d fffffe72 89
+B 0pa 0c
+read 27 bytes from cerebot: /6r+AAH/AAQABP/LAA7/Hf5yAIk
+vec accX: -86
+A ffffffaa fffffe00 1ff
+G 4 4 ffffffcb e
+M ffffff1d fffffe72 89
+B 4004pa 4160c
+read 5 bytes from cerebot: AAAAA
+vec accX: 0
+A 0 4 1040
+G 410 4004 1040 410
+M 4004 1040 410
+B 4004pa 4160c
+read 32 bytes from cerebot: /6n+AAH/AC4AH//XAA7/Hf5yAIkAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 2e 1f ffffffd7 e
+M ffffff1d fffffe72 89
+B 0pa 0c
+read 30 bytes from cerebot: /6j+AAH/AFQABQAeAA7/Hf5yAIkAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 54 5 1e e
+M ffffff1d fffffe72 89
+B 0pa 4160c
+read 2 bytes from cerebot: AA
+vec accX: 16
+A 10 4004 1040
+G 410 4004 1040 410
+M 4004 1040 410
+B 4004pa 4160c
+read 32 bytes from cerebot: /6j+AAH//zr/8QABAA7/Hf5yAIkAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G ffffff3a fffffff1 1 e
+M ffffff1d fffffe72 89
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/ADT/+P/bAA7/Hf5yAIkAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 34 fffffff8 ffffffdb e
+M ffffff1d fffffe72 89
+B 0pa 0c
+read 32 bytes from cerebot: /6n+AAH/AD8AE//DAA7/G/5zAIgAAAAA
+vec accX: -87
+A ffffffa9 fffffe00 1ff
+G 3f 13 ffffffc3 e
+M ffffff1b fffffe73 88
+B 0pa 0c
+read 32 bytes from cerebot: /6j+AAH/ABsAIv/oAA7/G/5zAIgAAAAA
+vec accX: -88
+A ffffffa8 fffffe00 1ff
+G 1b 22 ffffffe8 e
+M ffffff1b fffffe73 88
+B 0pa 0c
+

@@ -1,0 +1,337 @@
+#include "my_motors.h"
+
+
+/*
+  The order of these statements depends on accelerometer x values. The motors need to
+  always turn in the direction opposite to the sign of the accelerometer x value.
+*/
+
+void switchMotors(short forward)
+{
+  if(forward){
+    setMotorsForward();
+  }
+  else{
+    setMotorsReverse();
+  }
+}
+
+/************************************************************************************
+CRITICAL: READ ENTIRE FUNCTION HEADER --> IMPROPER USAGE CAN SHORT-CIRCUIT THE H-BRIDGE!!!
+
+Function: void setMotorsReverse(void)
+Returns: none
+Input params: void
+Output params: void
+Description: This function reverses the motors by changing the value of the H-bridge
+direction pins.  To do so, it is ABSOLUTELY CRITICAL that we delay for some time
+before changing the value of these pins.  The H-bridge requires a few clock cycles of
+zero voltage to perform switching without a potential short-circuit, so the steps are:
+	1) drive duty-cycle to 0% (or *disable OC modules completely)
+	2) delay for some time to allow voltage to go to zero
+	3) switch direction pin values
+		*4) re-enable OC modules (if disabled in step 1)
+
+As long as we let the voltage go to zero for a few clock cycles (I use a few hundred)
+before switching the direction pins, we're unlikely to burnout the H-bridges.
+
+	HB5 map:	Left motor HB5: 	(PIC)	(Cerebot)
+									OC3	->	RD2	(output waveform toggles the H-bridge enable)
+									Dir	->	RD6	(direction)
+									RD10-> 	IC3
+									Vdd	->	Vdd
+									Gnd	->	Gnd
+				Right motor HB5: 	(PIC)	(Cerebot)
+									OC2	->	RD1
+									Dir	->	RD7	(direction)
+									RD9 -> 	IC2
+									Vdd	->	Vdd
+									Gnd	->	Gnd
+
+Common personal bug: writing direction to direction register; remember the logic state of
+the pins determines direction, so write to PORTx reg, not TRISx.
+*************************************************************************************/
+void setMotorsReverse(void)
+{
+	SetPulseOC2(DC_ZEROPCT, DC_ZEROPCT);		//drive voltage to zero
+	SetPulseOC3(DC_ZEROPCT, DC_ZEROPCT);		//drive voltage to zero
+
+	delay(TINY_DLY);			//CRITICAL: DELAY IS NEEDED TO PREVENT SHORT-CIRCUIT OF H-BRIDGE
+
+	PORTWrite(IOPORT_D, BIT_7);			//reverse direction pin of right motor
+	PORTClearBits(IOPORT_D, BIT_6);		//reverse direction pin of left motor
+}
+
+/************************************************************************************
+CRITICAL: READ ENTIRE FUNCTION HEADER --> IMPROPER USAGE CAN SHORT-CIRCUIT THE H-BRIDGE!!!
+
+Function: void setMotorsForward(void)
+Returns: none
+Input params: void
+Output params: void
+Description: This function reverses the motors by changing the value of the H-bridge
+direction pins.  To do so, it is ABSOLUTELY CRITICAL that we delay for some time
+before changing the value of these pins.  The H-bridge requires a few clock cycles of
+zero voltage to perform switching without a potential short-circuit, so the steps are:
+	1) drive duty-cycle to 0% (or *disable OC modules completely)
+	2) delay for some time to allow voltage to go to zero
+	3) switch direction pin values
+		*4) re-enable OC modules (if disabled in step 1)
+
+As long as we let the voltage go to zero for a few clock cycles (I use a few hundred)
+before switching the direction pins, we're unlikely to burnout the H-bridges.
+
+	HB5 map:	Left motor HB5: 	(PIC)	(Cerebot)
+									OC3	->	RD2	(output waveform toggles the H-bridge enable)
+									Dir	->	RD6	(direction)
+									RD10-> 	IC3
+									Vdd	->	Vdd
+									Gnd	->	Gnd
+				Right motor HB5: 	(PIC)	(Cerebot)
+									OC2	->	RD1
+									Dir	->	RD7	(direction)
+									RD9 -> 	IC2
+									Vdd	->	Vdd
+									Gnd	->	Gnd
+
+Common personal bug: writing direction to direction register; remember the logic state of
+the pins determines direction, so write to PORTx reg, not TRISx.
+*************************************************************************************/
+void setMotorsForward(void)
+{
+	SetPulseOC2(DC_ZEROPCT, DC_ZEROPCT);
+	SetPulseOC3(DC_ZEROPCT, DC_ZEROPCT);
+	delay(TINY_DLY);
+	PORTWrite(IOPORT_D, BIT_6);
+	PORTClearBits(IOPORT_D, BIT_7);
+}
+
+/****************************************************************************************
+ Function: void delay(unsigned int ms)
+ Returns: void
+ Input Parameters: u_int ms (amount of delay)
+ Description: This function delays operations for a specified number of instruction cycles, by passing the assembly instruction
+ NOP (no-operation) to the system. This causes the CPU to execute no-operation for the number of cycles specified by the
+ input parameter "ms", an unsigned integer type.  Recall the max size of an integer is 65,535 and the PIC CPU runs at around
+ 80 MHz, or 80 million cycles per second.  So if we pass 65535 into this function, the maximum delay is about 65535 / 80 million,
+ or 0.8 milliseconds.  So how do we get a longer delay?  Simply nest another loop inside the main loop of this function to get
+ ms^2 (ms squared) performance, or likewise you can call the function itself from within a loop.
+ Usages: delaying, debouncing (see wikipedia "debouncing")
+ Preconditions: None
+ Postconditions: A timed delay occurs
+ ****************************************************************************************
+void delay(unsigned int ms)
+{
+    unsigned int count = 0;
+
+    for(count = 0; count < ms; count++)
+    {
+        asm("NOP");
+    }
+
+		/* Alternative counter loop template for longer delays: nested loops can square the number of overall loop iterations,
+		   so this loop will execute a maximum of 65535 * 65535 times, or about 4 billion times.  Dividing this value by our
+		   clock frequency of 80 MHz gives a delay of around 53 seconds, clearly a very long (maximum) delay.
+
+		unsigned int count = 0;
+		unsigned int inner_count = 0;
+
+		for(count = 0; count < ms; count++)
+		{
+			for(inner_count = 0; inner_count < ms; inner_count++)
+			{
+				asm("NOP");
+			}
+		}
+		
+}
+*/
+
+
+/*****************************************************************************************
+ Function: configurePortIO(void)
+ Description: This function sets up the pins to the on-board LEDs as output pins
+
+
+ Notes: may need to call AD1CFG, as in original assembly, to set analog ports to digital???
+
+		Mapping: Arrows indicate software/PIC mapping to physical ports on Cerebot board.
+		OCx (output compare) port-locations drive the motors.
+
+		Left motor HB5: 	(PIC)	(Cerebot)
+							OC3	->	RD2	(output waveform toggles the H-bridge enable)
+							Dir	->	RD6	(direction)
+							IC3 -> 	RD10
+							Vdd	->	Vdd
+							Gnd	->	Gnd
+
+		Right motor HB5: 	(PIC)	(Cerebot)
+							OC2	->	RD1
+							Dir	->	RD7	(direction)
+							IC2 ->	RD9
+							Vdd	->	Vdd
+							Gnd	->	Gnd
+
+		UART(B-Tooth):	(PIC)	(Cerebot)
+							U1TX ->	RF02
+							U1RX ->	RF08
+
+ *****************************************************************************************
+void configurePortIO (void)
+{
+	//Motor configuration: 	SET: BIT_7 (RD7)		CLEAR: BIT_6 (RD6), BIT_2 (OC3/RD2), BIT_1 (OC2/RD1)
+		PORTSetPinsDigitalOut (IOPORT_D, BIT_7 | BIT_6 | BIT_2 | BIT_1);
+		PORTSetPinsDigitalIn (IOPORT_D, BIT_10 | BIT_9);
+
+	//set BIT_6 to 1 (left motor direction), BIT_7 (and all others) to 0 (right motor direction)
+		PORTWrite(IOPORT_D, BIT_6);
+		PORTClearBits(IOPORT_D, BIT_7);
+
+	//UART configuration: Set BIT_8 to 1 (RF02), clear BIT_2 to 0 (RF08)
+		PORTSetPinsDigitalOut (IOPORT_F, BIT_8);
+		PORTSetPinsDigitalIn (IOPORT_F, BIT_2);
+
+	//LED signal configuration: set all Port_B as output
+		PORTSetPinsDigitalOut (IOPORT_B, BIT_10 | BIT_11 | BIT_12 | BIT_13 | BIT_0 | BIT_1 | BIT_2 | BIT_3);
+}
+*/
+
+/****************************************************************************************
+Function: void configureTimer2(int Period)
+Returns: None
+Input params: int Period (desired period register value)
+Output params: none
+Description: Configures timer 2 with no interrupts, 1:2 prescaler.
+
+	Desired period value: 256
+	Clock values:	System 	80MHz
+					PBCLK	40MHz
+	Prescaler: 		1:2
+	Desired Output Frequency: 78kHz (a close approximation to 100kHz, a motor PWM frequency rule of thumb)
+
+Other notes:  We generally shoot for a timer frequency of about 100kHz to drive the
+ motors with our timer/OC PWM signal.
+PIC32 libs/ref:
+	C:\Program Files (x86)\Microchip\xc32\v1.20\pic32mx\include\peripheral\timer.h
+****************************************************************************************
+void configureTimer2(int Period)
+{
+	OpenTimer2(T2_ON | T2_PS_1_2, Period);
+}
+*/
+
+/****************************************************************************************
+Function: void configOCModule2(void)
+Returns: None
+Input params: none
+Output params: none
+Description: Configures Output Comparison Module 2 and initializes the duty-cycle (DC) to 0%.
+
+	Desired DC:	0%
+	Timer source: Timer 2
+	Clock values:	System 	80MHz
+					PBCLK	40MHz
+	Prescaler: 		1:2
+	Desired Output Frequency: 78kHz (a close approximation to 100kHz, a motor PWM frequency rule of thumb)
+Library calls:
+	OpenOC2(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0, 0)
+	The first argument above enables the OC module, selects Timer 2 as its source, and disables
+	the PWM fault pin (from the ref manual).  The second and third arguments (both zero) are
+	the values with which we want to initialize OCxR and OCxRS.  I don't know why you would ever
+	want to initialize these values, rather than using an explicit call--do you???? Perhaps
+	to save a dozen or so clock cycles (about 1.5E-7 seconds) for more facebook time.
+
+Other notes:  We generally shoot for a timer frequency of about 100kHz to drive the
+ motors with our timer/OC PWM signal.
+PIC32 libs/ref:
+	C:\Program Files (x86)\Microchip\xc32\v1.20\pic32mx\include\peripheral\timer.h
+	C:\Program Files (x86)\Microchip\xc32\v1.20\examples\plib_examples\timer
+	C:\Program Files (x86)\Microchip\xc32\v1.20\examples\plib_examples
+****************************************************************************************/
+void configOCModule2(void)
+{
+	OpenOC2(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0, 0);
+}
+
+/****************************************************************************************
+Function: void configOCModule2(void)
+Returns: None
+Input params: none
+Output params: none
+Description: Configures Output Comparison Module 2 and initializes the duty-cycle (DC) to 0%.
+
+	Desired DC:	0%
+	Timer source: Timer 2
+	Clock values:	System 	80MHz
+					PBCLK	40MHz
+	Prescaler: 		1:2
+	Desired Output Frequency: 78kHz (a close approximation to 100kHz, a motor PWM frequency rule of thumb)
+Library calls:
+	OpenOC2(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0, 0)
+	The first argument above enables the OC module, selects Timer 2 as its source, and disables
+	the PWM fault pin (from the ref manual).  The second and third arguments (both zero) are
+	the values with which we want to initialize OCxR and OCxRS.  I don't know why you would ever
+	want to initialize these values, rather than using an explicit call--do you???? Perhaps
+	to save a dozen or so clock cycles (about 1.5E-7 seconds) for more facebook time.
+
+Other notes:  We generally shoot for a timer frequency of about 100kHz to drive the
+ motors with our timer/OC PWM signal.
+PIC32 libs/ref:
+	C:\Program Files (x86)\Microchip\xc32\v1.20\pic32mx\include\peripheral\timer.h
+	C:\Program Files (x86)\Microchip\xc32\v1.20\examples\plib_examples\timer
+	C:\Program Files (x86)\Microchip\xc32\v1.20\examples\plib_examples
+****************************************************************************************/
+void configOCModule3(void)
+{
+	OpenOC3(OC_ON | OC_TIMER2_SRC | OC_PWM_FAULT_PIN_DISABLE, 0, 0);
+}
+
+/****************************************************************************************
+Function: void writeOC2(unsigned int newOC2RValue, unsigned int newOC2RSValue)
+Returns: None
+Input params: unsigned int newOC2RValue, unsigned int newOC2RSValue  (our new OCxR/OCxRS values, to modify current duty-cycle)
+Output params: none
+Description: Modifies the current duty-cycle (DC) by setting the OCxRS/OCxR registers to new values.  Recall
+the duty cycle is given by: (OCxR / PR) x 100% so writing to OCxR allows us to modify the duty cycle.
+Also recall OCxRS and OCxR are effectively the same register: we write to OCxR by writing to OCxRS, since
+the value of OCxR is not upated until the next timer reset (OCxR cannot be written directly).  I actually
+dont know why this library function accepts input values for OCxR and OCxRS, since only OCxRS is write-able
+anyway! (Do I detect a nerd challenge? Write the MIPS assembly testing, and observe for yourself!)
+For the most part, we will always use a duty cycle between 60% (slow) and 85% (full throttle), and 0% (stopped).
+We should not use 90%-100% duty cycles, or we risk burning out the motors.  Through experiment, you'll see that
+the throttle range is between about 50% and 85%.  Below 50% is generally not enough to even turn the motor,
+especially on rough surfaces (like carpeting).  Above 85% is ill-advised.
+
+	Desired DC:	0%
+	Timer source: Timer 2
+	Clock values:	System 	80MHz
+					PBCLK	40MHz
+	Prescaler: 		1:2
+	Desired Timer/OC Output Frequency: 78kHz (a close approximation to 100kHz, a motor PWM frequency rule of thumb)
+Library calls:
+	SetPulseOC2(newOC2RValue, newOC2RSValue)
+	This library function changes our duty cycle by modifying the value of the OCxR signal.
+
+Other notes:  We generally shoot for a timer frequency of about 100kHz to drive the
+ motors with our timer/OC PWM signal.
+PIC32 libs/ref:
+	C:\Program Files (x86)\Microchip\xc32\v1.20\pic32mx\include\peripheral\outcompare.h
+	C:\Program Files (x86)\Microchip\xc32\v1.20\examples\plib_examples\ocmp
+			^----Awesome examples in the plib_example file!!!
+
+Other useful functions:
+	unsigned int myInt = ReadDCOC3PWM(); <--gets duty cycle
+	unsigned int myInt = ReadRegOC3()    <--gets the OCxR value directly (preferable)
+****************************************************************************************/
+void writeOC2(unsigned int newOC2RValue, unsigned int newOC2RSValue)
+{
+	SetPulseOC2(newOC2RValue, newOC2RSValue);	//returns OCxR or OCxRS as u_int
+}
+
+//see function header above for writeOC2
+void writeOC3(unsigned int newOC3RValue, unsigned int newOC3RSValue)
+{
+	SetPulseOC3(newOC3RValue, newOC3RSValue);	//returns OCxR or OCxRS as u_int
+}
+
+

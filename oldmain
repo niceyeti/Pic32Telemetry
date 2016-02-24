@@ -1,0 +1,554 @@
+// -----------------------------------------------------------------------------
+// Template Notes:
+//                  -> FreeRTOS uses Timer 1, do not try to use
+//                  -> Microchip TCPIP Tick uses Timer 5, do not use, see "Tick.c"
+//                  -> prvTCPIP connects WiFi and maintains TCPIP stack
+//                     this task must be executed frequently, currently it is
+//                     being serviced every 50ms.
+//                  -> prvLED toggles an LED every 100ms
+//                  -> For configuring the TCPIP stack for different
+//                     functionality see TCPIP.h, TCPIPConfig.h, HardwareProfile.h,
+//                     WF_Config.h
+//                  -> INTERRUPTS:
+//                           The interrupts for Timer 5 and External Interrupt 3
+//                           are completely setup in Tick.c and WF_Eint.c
+//                           respectively. Therefore you do not need to setup
+//                           the vectors, handlers, etc., as they are already
+//                           taken care of.  If you wish to change them see
+//                           the ".c" files.  The wrappers for INT3 and Timer 5
+//                           are in "INT3_ISR.S", "T5_ISR.S" respectively.
+//                  -> DIGILENT PORT:
+//                           PmodWiFi should be plugged into Digilent port JB.
+//                  -> HARDWARE JUMPER:
+//                           You will need to set the jumper on
+//                           "JP3" to the "INT3" position.  It is
+//                           important to note that "INT3" is also a
+//                           pin on Digilent port "JF", thus you must
+//                           make sure that you have nothing else
+//                           connected on the "JF" pin or else you
+//                           may damage your hardware. The I2C1 bus uses this
+//                           pin as well, thus make sure you have nothing
+//                           connected to it (i.e. J2).
+//                  -> HAVE FUN!!! :D
+// -----------------------------------------------------------------------------
+
+#include <plib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "FreeRTOS/include/FreeRTOS.h"
+#include "FreeRTOS/include/task.h"
+#include "FreeRTOS/include/queue.h"
+#include "FreeRTOS/include/timers.h"
+#include "FreeRTOS/include/semphr.h"
+
+#define DESIRED_DATA_RATE   115200  //default for pmod bt2 is 115200
+#define PR_BASE             256
+#define PERIPHERAL_CLOCK    40000000ul
+
+
+
+
+
+// --------------------- TCPIP WiFi Stuff ---------------------------------------
+#define STACK_SIZE_TCPIP		(configMINIMAL_STACK_SIZE * 3)
+#define ROUTER_SSID                     "NETGEAR"
+#define PASSPHRASE                      "0123456789"        // WPA2 encryption
+#include "includes/MCHP_TCPIP.h"
+// -----------------------------------------------------------------------------
+
+// ------------------ Configuration Oscillators --------------------------------
+// SYSCLK = 80 MHz (8MHz Crystal/ FPLLIDIV * FPLLMUL / FPLLODIV)
+// PBCLK  = 40 MHz
+// -----------------------------------------------------------------------------
+#pragma config FPLLMUL = MUL_20, FPLLIDIV = DIV_2, FPLLODIV = DIV_1, FWDTEN = OFF
+#pragma config POSCMOD = HS, FNOSC = PRIPLL, FPBDIV = DIV_2
+//#pragma config CP = OFF, BWP = OFF, PWP = OFF
+//#pragma config UPLLEN = OFF
+
+// -----------------------------------------------------------------------------
+//                    FreeRTOS Task Priorities, Queues, etc.
+// -----------------------------------------------------------------------------
+    #define taskIDLE_PRIORITY   1
+    #define priLED              (taskIDLE_PRIORITY + 1)
+    #define priPING              (taskIDLE_PRIORITY + 1)
+    #define priTCPIP            (taskIDLE_PRIORITY + 2)
+
+// -----------------------------------------------------------------------------
+//                         Task/Function Prototypes
+// -----------------------------------------------------------------------------
+    static void prvLED(void *parameter);
+    static void prvPING(void *parameter);
+    static void prvTCPIP(void* pvParameter);
+
+    unsigned int ping(void);
+    void configurePortIO(void);
+    void configureUART1(void);
+    void setupUART1(unsigned int pb_clock); //Andy version of UART setup
+    void configureTimer2(int Period);
+    void configureTimer4(int Period);
+
+// -----------------------------------------------------------------------------
+//                                  Main
+// -----------------------------------------------------------------------------
+int main(void)
+{
+    // ---------------------------- Setpu LEDs ---------------------------------
+        PORTSetPinsDigitalOut (IOPORT_B, BIT_10 |  BIT_11 |  BIT_12 |  BIT_13);
+        PORTClearBits (IOPORT_B,  BIT_10 |  BIT_11 |  BIT_12 |  BIT_13);
+
+    // ------------------------ Configure WiFi CS/SS Pin -----------------------
+        #if defined(WF_CS_TRIS)
+            WF_CS_IO = 1;
+            WF_CS_TRIS = 0;
+        #endif
+
+        // Disable JTAG port so we get our I/O pins back, but first
+        // wait 50ms so if you want to reprogram the part with
+        // JTAG, you'll still have a tiny window before JTAG goes away.
+        // The PIC32 Starter Kit debuggers use JTAG and therefore must not
+        // disable JTAG.
+        DelayMs(50);
+    // -------------------------------------------------------------------------
+
+
+    configurePortIO();
+    setupUART1(PERIPHERAL_CLOCK);
+    configureTimer4(32); //for ping sensor
+
+    INTEnableSystemMultiVectoredInt();
+    INTEnableInterrupts();
+
+    // ------------------------- Create tasks ----------------------------------
+    xTaskCreate(prvPING, "PING", configMINIMAL_STACK_SIZE, NULL, priPING, NULL);
+    //xTaskCreate(prvTCPIP, "TCPIP", STACK_SIZE_TCPIP, NULL, priTCPIP, NULL);
+
+    // ---------------------  Start FreeRTOS Scheduler -------------------------
+    vTaskStartScheduler();
+
+    /* If all is well, the scheduler will now be running, and the following line
+    will never be reached.  If the following line does execute, then there was
+    insufficient FreeRTOS heap memory available for the idle and/or timer tasks
+    to be created.  See the memory management section on the FreeRTOS web site
+    for more details. */
+    for( ;; );
+
+    return 0;
+}
+
+
+/*******************************************************************************
+ *               Task: prvPing
+ *       Date Created: 04/17/2013
+ * Date Last Modified: 04/17/2013
+ *        Description: Toggle LD4 every 100 ms
+ *   Input parameters: void *parameter          Generic pointer
+ *            Returns: Never returns
+ *      Preconditions: Task must have been created before starting scheduler
+ *     Postconditions: None
+/******************************************************************************/
+static void prvPING(void *parameter)
+{
+    unsigned long ulParam;
+    portTickType xNextWakeTime;
+    int a;
+    char dbg[128] = {0};
+
+    xNextWakeTime = xTaskGetTickCount();
+
+    while(1)
+    {
+        // Wait for 100ms
+        vTaskDelayUntil(&xNextWakeTime, 100);
+        a = ping();
+        sprintf(dbg,"a is: 0x%x\n",a);
+        putsUART1(dbg);
+
+        LATBINV = (1 << 13);
+    }
+}
+
+
+/*******************************************************************************
+ *               Task: prvTCPIP
+ *       Date Created: 04/17/2013
+ * Date Last Modified: 04/17/2013
+ *        Description: TCPIP task that connects WiFi, services TCPIP software stack
+ *   Input parameters: void *parameter          Generic pointer
+ *            Returns: Never returns
+ *      Preconditions: Task must have been created before starting scheduler
+ *     Postconditions: None
+/******************************************************************************
+static void prvTCPIP(void* pvParameter)
+{
+    UINT32 t = 0;
+    unsigned long ulParam;
+    portTickType xNextWakeTime;
+
+    xNextWakeTime = xTaskGetTickCount();
+
+    TickInit();
+
+    // initialize the basic application configuration
+    InitAppConfig();
+
+    // Initialize the core stack layers
+    StackInit();
+
+        #if defined(DERIVE_KEY_FROM_PASSPHRASE_IN_HOST)
+            g_WpsPassphrase.valid = FALSE;
+        #endif    // defined(DERIVE_KEY_FROM_PASSPHRASE_IN_HOST)
+    WF_Connect();
+
+    while (1)
+    {
+            if(TickGet() - t >= TICK_SECOND/2ul)
+            {
+                t = TickGet();
+                LED0_IO ^= 1;
+            }
+
+            // Wait for 50ms
+            vTaskDelayUntil(&xNextWakeTime, 50);
+
+            // perform normal stack tasks including checking for incoming
+            // packets and calling appropriate handlers
+            StackTask();
+
+            #if defined(WF_CS_TRIS)
+                #if !defined(MRF24WG)
+                if (gRFModuleVer1209orLater)
+                #endif
+                WiFiTask();
+            #endif
+
+            // This tasks invokes each of the core stack application tasks
+            StackApplications();
+
+            #if defined(STACK_USE_ZEROCONF_LINK_LOCAL)
+            ZeroconfLLProcess();
+            #endif
+
+            #if defined(STACK_USE_ZEROCONF_MDNS_SD)
+            mDNSProcess();
+            // Use this function to exercise service update function
+            // HTTPUpdateRecord();
+            #endif
+
+            // -------------- Custom Code Here -----------------------------
+            // NOTE: You can use semaphores, etc., to trigger other tasks
+            //       not all code needs to execute here.  Just make sure
+            //       this task is serviced frequently.
+    }
+}
+*/
+
+/*
+  This requires some more precise timing; IOW we must know delayMS(1) gives 1ms, and readtimer4() gives some ms-translatable val
+  Model according to the condition that the echo line lowers after about 30MS anyway other infinite distance / horizon conditions.
+
+  Returns A range, some infinity valu ( 0? ), or an error code ( -1? ) ????
+
+  May build on this to capture whatever experimental conditions arise:
+    case: values at < 2cm distance
+    case: inifinite distances
+    case: warped echoes (soft or angular obstacles)
+    case: etc.
+    code: poll sensor 10 times, average, filter, markov, or discard bastard vals > stdDev
+
+  Make triggers (and thus readings) per second is probably close to 20.
+
+*/
+unsigned int ping(void)
+{
+  unsigned int start = 0, end = 0, dt = 0, dist = 0, i = 0, j = 0, k = 0;
+
+  char debugStr[128] = {'\0'};
+  unsigned int period = 65000;
+
+  //precon: send short low pulse so high pulse is clean/discrete
+  LATEbits.LATE3 = 0;
+  for(i = 0; i < 320; i++){ Nop(); }  // Pin should already be low, this just verifies by delaying at least 4us (pin toggle time for device)
+
+  //start timer
+  configureTimer4(period);  //timer 4 configured in 16 bit mode for 10MHz  (1/8 sys clk divider)
+
+  //read current clock val and trigger a ping
+  start = ReadTimer4();
+  LATEbits.LATE3 = 1;
+
+  // Delay 10 microsec while BIT_3 high. At 80Mhz, 10 microseconds == 800 clocks
+  //for(i = 0; !(PORTRead(IOPORT_E) & 0x00000004); i++){ // 267 = 800 / 3, since loop contains three ops per iteration: <, ++, and nop
+  for(i = 0; (i < 350) && !PORTEbits.RE2; i++){ // 267 = 800 / 3, since loop contains three ops per iteration: <, ++, and nop
+    Nop();
+  }
+
+  //should pingClk get stamped here instead, when rising edge of echo detected??? or even below, after wait-for-echo loop
+  LATEbits.LATE3 = 0;  // 10us burst complete: drive output low
+
+  //wait for echo segment to begin
+  while( !PORTEbits.RE2 && (k < 60000) ){ k++; }  //30000 is arbitrary testing: this gives about 0.75ms, assuming a single op per iter.
+
+  //scale k and j failsafes to minimum according to experimentation (they will likely fluctuate according to echo/distance
+
+
+  if(k < 60000){
+
+    //polling: echo is high, wait for it to end: may need nested delay here
+    while( PORTEbits.RE2 && (j < 65000) ){
+      //currVal = ReadTimer4();
+      //dt += currVal - lastVal;
+      //lastVal = currVal;
+      j++;
+    }
+
+    if(j < 65000){  //success
+       end = ReadTimer4();
+       CloseTimer4();
+       // This gives cm's; use / (148 * 10) for inches. The '* 10' term is for scaling the timer val into microsecs, as T4 runs at 10MHz
+       dist = (end - start) / (58 * 10);
+       sprintf(debugStr,"dist: %dcm dt: x%8X T4: x%08X i: %d j: %d k: %d\n\r",dist,end - start,ReadTimer4(),i,j,k);
+       putsUART1(debugStr);
+    }
+    else{
+      putsUART1("j >= 65000 in ping()\n");
+    }
+  }
+  else{
+     putsUART1("k >= 60000 in ping()\n");
+  }
+
+  return dist;
+}
+
+/*
+//configure T4 for 10 MHz (given sysclk == 80 MHz)
+void configureTimer4(int Period)
+{
+  ConfigIntTimer4( T4_INT_OFF );
+  WriteTimer4(0);
+  OpenTimer4(T4_ON | T4_IDLE_CON | T4_32BIT_MODE_OFF | T4_PS_1_8, Period);
+}
+
+void configureTimer2(int Period)
+{
+  OpenTimer2(T2_ON | T2_PS_1_2, Period);
+  WriteTimer2(0);
+}
+*/
+
+/*******************************************************************************
+ *               Task: prvLED
+ *       Date Created: 04/17/2013
+ * Date Last Modified: 04/17/2013
+ *        Description: Toggle LD4 every 100 ms
+ *   Input parameters: void *parameter          Generic pointer
+ *            Returns: Never returns
+ *      Preconditions: Task must have been created before starting scheduler
+ *     Postconditions: None
+/******************************************************************************/
+static void prvLED(void *parameter)
+{
+    unsigned long ulParam;
+    portTickType xNextWakeTime;
+
+    xNextWakeTime = xTaskGetTickCount();
+
+    while(1)
+    {
+        // Wait for 100ms
+        vTaskDelayUntil(&xNextWakeTime, 100);
+        LATBINV = (1 << 13);
+    }
+}
+
+/*****************************************************************************************
+ Function: configurePortIO(void)
+ Description: This function sets up the pins to the on-board LEDs as output pins
+
+ Notes: may need to call AD1CFG, as in original assembly, to set analog ports to digital???
+
+    Mapping: Arrows indicate software/PIC mapping to physical ports on Cerebot board.
+    OCx (output compare) port-locations drive the motors.
+
+    Left motor HB5:   (PIC)  (Cerebot)
+              OC3  ->  RD2  (output waveform toggles the H-bridge enable)
+              Dir  ->  RD6  (direction)
+              IC3 ->   RD10
+              Vdd  ->  Vdd
+              Gnd  ->  Gnd
+
+    Right motor HB5:   (PIC)  (Cerebot)
+              OC2  ->  RD1
+              Dir  ->  RD7  (direction)
+              IC2 ->  RD9
+              Vdd  ->  Vdd
+              Gnd  ->  Gnd
+
+    UART(B-Tooth):  (PIC)  (Cerebot)
+              U1TX ->  RF02
+              U1RX ->  RF08
+
+    I2C1:     SCL1 -> RA14
+              SDA1 -> RA15
+              From the PIC32 IC2 manual (sect 24):
+              In I2C mode, pin SCL is clock and pin SDA is data. The module will override the data direction
+              bits (TRIS bits) for these pins.
+
+    SPI 2:    SDI2  -> RG7
+              SDO2  -> RG8
+              CLK2  -> RG6
+              SS2   -> RG9 [configured for 1MHz operation in spiInitialize() ]
+
+   ~~~~~~~!!! PORT E IS FOR 5 VOLT ONLY !!!~~~~~~~
+   !  HC-SR04 Ping))) Sensor:
+   !     RE03 == TRIG
+   !     RE02 == ECHO
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ *****************************************************************************************/
+
+/*
+//Andy version
+void setupUART1 (unsigned int pb_clock)
+{
+  // OpenUART1 (config1, config2, ubrg)
+  OpenUART1 (UART_EN | UART_IDLE_CON | UART_RX_TX | UART_DIS_WAKE | UART_DIS_LOOPBACK | UART_DIS_ABAUD | UART_NO_PAR_8BIT | UART_1STOPBIT | UART_IRDA_DIS |
+               UART_MODE_FLOWCTRL | UART_DIS_BCLK_CTS_RTS | UART_NORMAL_RX | UART_BRGH_SIXTEEN,
+               UART_TX_PIN_LOW | UART_RX_ENABLE | UART_TX_ENABLE | UART_INT_TX | UART_INT_RX_CHAR | UART_ADR_DETECT_DIS  | UART_RX_OVERRUN_CLEAR,
+         mUARTBRG(pb_clock, DESIRED_DATA_RATE));
+}
+
+void configurePortIO (void)
+{
+  //unsigned int portState = 0;
+
+  /******************************************************************************
+  WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+
+  WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+
+  PORTE is set to 5 volts for the ping sensor peripheral: attach no other pmods to
+  any PORTE port, unless 5 volt.
+  ******************************************************************************
+
+  //Ping Sensor configuration. Uses Peripheral ports RE02 and RE03 just as basic ports (no special PIC internal peripherals)
+  //SEE WARNING ABOVE: port E is 5 volt ONLY
+    PORTSetPinsDigitalOut (IOPORT_E, BIT_3);
+    PORTSetPinsDigitalIn (IOPORT_E, BIT_2);  //set all remaining RE pins as inputs
+    PORTEbits.RE3       = 0;  //send all outputs low initially
+
+  //Motor configuration:   SET: BIT_7 (RD7)    CLEAR: BIT_6 (RD6), BIT_2 (OC3/RD2), BIT_1 (OC2/RD1)
+    PORTSetPinsDigitalOut (IOPORT_D, BIT_7 | BIT_6 | BIT_2 | BIT_1);
+    PORTSetPinsDigitalIn (IOPORT_D, BIT_10 | BIT_9);
+
+  //set BIT_6 to 1 (left motor direction), BIT_7 (and all others) to 0 (right motor direction)
+    PORTWrite(IOPORT_D, BIT_6);
+    PORTClearBits(IOPORT_D, BIT_7);
+
+  //UART configuration: Set BIT_8 to 1 (RF02), clear BIT_2 to 0 (RF08)
+    PORTSetPinsDigitalOut (IOPORT_F, BIT_8);
+    PORTSetPinsDigitalIn (IOPORT_F, BIT_2);
+
+  //LED signal configuration: set all Port_B as output. BIT_3 output is for HC-SR04 sensor TRIG signal.
+    PORTSetPinsDigitalOut (IOPORT_B, BIT_10 | BIT_11 | BIT_12 | BIT_13);
+  //  PORTSetPinsDigitalIn (IOPORT_B, BIT_12 );  //BIT_12 input is for ECHO signal from HC-SR04
+
+  //I2C1 setup    SCL1 = RA14    SDA1 = RA15
+    PORTSetPinsDigitalIn(IOPORT_A, BIT_14 | BIT_15);  //see header: the manual says this I/O will be appropriately overridden by the IC2 module itself
+
+  //SPI setup for digilent pmod wifi, pmod adxl345
+    PORTSetPinsDigitalOut(IOPORT_G, BIT_6 | BIT_8 | BIT_9 );  //Set SDO1, SCLK, SS lines output
+    PORTSetPinsDigitalOut(IOPORT_B, BIT_14 | BIT_15 );        //Set all the rest of em to outputs to ignore...
+    PORTSetPinsDigitalOut(IOPORT_D, BIT_4 | BIT_5 );        // these too.
+    PORTSetPinsDigitalIn(IOPORT_G, BIT_7 );  //Set SDI1 to input at RG07
+    //now initialize the spi port values, make sure they're low
+    PORTGbits.RG6       = 0;  //port G
+    PORTGbits.RG8       = 0;
+    PORTGbits.RG9       = 1;  // SS2 line is active-low, so drive it high initially
+    PORTBbits.RB14      = 0; //port B
+    PORTBbits.RB15      = 0;
+    PORTDbits.RD4       = 0;  //port D
+    PORTDbits.RD5       = 0;
+
+  //Also set RB15, RD05, RD4, and RB14 to inputs.  These are four additional wifi mod signals.
+
+}
+*/
+
+
+// -----------------------------------------------------------------------------
+//                          General Exception Handler
+// -----------------------------------------------------------------------------
+void _general_exception_handler( unsigned long ulCause, unsigned long ulStatus )
+{
+    /* This overrides the definition provided by the kernel.  Other exceptions
+    should be handled here. */
+    for( ;; )
+    {
+        // Set LEDs to indicate error
+        LATBSET = (0xF << 10);
+    }
+}
+
+// -----------------------------------------------------------------------------
+//                      Application Malloc Failed Hook
+// -----------------------------------------------------------------------------
+void vApplicationMallocFailedHook( void )
+{
+	/* vApplicationMallocFailedHook() will only be called if
+	configUSE_MALLOC_FAILED_HOOK is set to 1 in FreeRTOSConfig.h.  It is a hook
+	function that will get called if a call to pvPortMalloc() fails.
+	pvPortMalloc() is called internally by the kernel whenever a task, queue,
+	timer or semaphore is created.  It is also called by various parts of the
+	demo application.  If heap_1.c or heap_2.c are used, then the size of the
+	heap available to pvPortMalloc() is defined by configTOTAL_HEAP_SIZE in
+	FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
+	to query the size of free heap space that remains (although it does not
+	provide information on how the remaining heap might be fragmented). */
+	taskDISABLE_INTERRUPTS();
+	for( ;; );
+}
+
+// -----------------------------------------------------------------------------
+//                          Application Idle Hook
+// -----------------------------------------------------------------------------
+void vApplicationIdleHook( void )
+{
+	/* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+	to 1 in FreeRTOSConfig.h.  It will be called on each iteration of the idle
+	task.  It is essential that code added to this hook function never attempts
+	to block in any way (for example, call xQueueReceive() with a block time
+	specified, or call vTaskDelay()).  If the application makes use of the
+	vTaskDelete() API function (as this demo application does) then it is also
+	important that vApplicationIdleHook() is permitted to return to its calling
+	function, because it is the responsibility of the idle task to clean up
+	memory allocated by the kernel to any task that has since been deleted. */
+}
+
+// -----------------------------------------------------------------------------
+//                      Application Stack overflow Hook
+// -----------------------------------------------------------------------------
+void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName )
+{
+	( void ) pcTaskName;
+	( void ) pxTask;
+
+	/* Run time task stack overflow checking is performed if
+	configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook	function is
+	called if a task stack overflow is detected.  Note the system/interrupt
+	stack is not checked. */
+	taskDISABLE_INTERRUPTS();
+	for( ;; );
+}
+
+// -----------------------------------------------------------------------------
+//                           Application Tick Hook
+// -----------------------------------------------------------------------------
+void vApplicationTickHook( void )
+{
+	/* This function will be called by each tick interrupt if
+	configUSE_TICK_HOOK is set to 1 in FreeRTOSConfig.h.  User code can be
+	added here, but the tick hook is called from an interrupt context, so
+	code must not attempt to block, and only the interrupt safe FreeRTOS API
+	functions can be used (those that end in FromISR()). */
+}
